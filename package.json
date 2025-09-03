@@ -1,0 +1,35 @@
+{
+  "name": "fix-reward",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.11.0",
+  "engines": { "node": ">=18.18.0" },
+  "scripts": {
+    "dev:admin": "pnpm --filter admin dev",
+    "dev:api": "pnpm --filter api dev",
+    "build:admin": "pnpm --filter admin build",
+    "build:api": "pnpm --filter api build",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ppppcorp/fix-reward.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": { "url": "https://github.com/ppppcorp/fix-reward/issues" },
+  "homepage": "https://github.com/ppppcorp/fix-reward#readme",
+  "description": "",
+  "devDependencies": {
+    "turbo": "^2.5.6",
+    "@next/eslint-plugin-next": "^15.3.3",
+    "eslint": "^9.27.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  }
+}
