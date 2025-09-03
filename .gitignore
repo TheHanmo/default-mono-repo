@@ -3,4 +3,10 @@ node_modules
 dist
 .next
 .env*
-/apps/api/logs/
+
+/.idea/
+/.vscode/
+
+dist/
+tsconfig.tsbuildinfo
+.turbo
