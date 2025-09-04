@@ -40,6 +40,8 @@ async function bootstrap() {
     prefix: 'api/',
   });
 
+  app.use(cookieParser());
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -58,8 +60,6 @@ async function bootstrap() {
       },
     }),
   );
-
-  app.use(cookieParser());
 
   app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     const { method, originalUrl } = req;

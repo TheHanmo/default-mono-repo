@@ -30,6 +30,10 @@ export class UserService {
     });
   }
 
+  async findByRefreshToken(userId: number): Promise<UserRefreshSessionEntity[] | null> {
+    return this.dataSource.getRepository(UserRefreshSessionEntity).find({ where: { userId } });
+  }
+
   async updateRefreshToken(
     userId: number,
     refreshToken: string,

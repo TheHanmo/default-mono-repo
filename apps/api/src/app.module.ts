@@ -10,6 +10,7 @@ import { typeOrmAsyncConfig } from '@config/database.config';
 
 import { AuthModule } from '@modules/auth/auth.module';
 import { TokenModule } from '@modules/auth/token.module';
+import { BoardModule } from '@modules/board/board.module';
 import { UserModule } from '@modules/user/user.module';
 
 import { AppService } from './app.service';
@@ -22,6 +23,7 @@ import { AppService } from './app.service';
     TokenModule,
     AuthModule,
     UserModule,
+    BoardModule,
   ],
   providers: [
     AppService,

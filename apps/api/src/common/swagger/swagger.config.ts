@@ -4,13 +4,13 @@ import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/sw
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('FIX REWARD API')
-    .setDescription('The FIX REWARD API description')
+    .setDescription('FIX REWARD API description')
     .setVersion('1.0')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'accessToken')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   const custom: SwaggerCustomOptions = {
-    customSiteTitle: 'The FIX REWARD API',
+    customSiteTitle: 'FIX REWARD API',
     swaggerOptions: {
       defaultModelsExpandDepth: 0,
       defaultModelExpandDepth: 5,

@@ -3,6 +3,8 @@ import { Repository } from 'typeorm';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
+import { getPagination, getPaginationResult } from '@utils/pagination.util';
+
 import { CreateBoardPostDto } from './dto/create-board-post.dto';
 import { ListBoardPostDto } from './dto/list-board-post.dto';
 import { UpdateBoardPostDto } from './dto/update-board-post.dto';
@@ -22,51 +24,61 @@ export class BoardService {
   ) {
     if (!isPopup) return; // 미사용
     if (!start || !end)
-      throw new BadRequestException('팝업 기간이 필요합니다. (popupStartAt, popupEndAt)');
+      throw new BadRequestException({
+        message: '팝업을 사용하려면 팝업 시작일과 종료일을 모두 입력해야 합니다.',
+        errorCode: 'POPUP_START_END_REQUIRED',
+      });
     const s = new Date(start);
     const e = new Date(end);
     if (!(s < e)) throw new BadRequestException('팝업 종료일은 시작일보다 커야 합니다.');
   }
 
-  async create(dto: CreateBoardPostDto) {
+  async create(userId: number, dto: CreateBoardPostDto) {
     this.validatePopupWindow(dto.isPopup, dto.popupStartAt, dto.popupEndAt);
-    const entity = this.boardEntityRepository.create({
+
+    const boardEntity = this.boardEntityRepository.create({
       title: dto.title,
       content: dto.content,
-      authorId: dto.authorId,
+      authorId: userId,
       isPinned: dto.isPinned ?? false,
       isPopup: dto.isPopup ?? false,
       popupStartAt: dto.popupStartAt ? new Date(dto.popupStartAt) : null,
       popupEndAt: dto.popupEndAt ? new Date(dto.popupEndAt) : null,
     });
-    return this.boardEntityRepository.save(entity);
+
+    return this.boardEntityRepository.save(boardEntity);
   }
 
-  async findAll(query: ListBoardPostDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const offset = (page - 1) * limit;
+  async findAll(dto: ListBoardPostDto) {
+    const { page, pageSize, offset } = getPagination(dto);
 
-    const qb = this.repo
+    const queryBuilder = this.boardEntityRepository
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.author', 'author')
       .orderBy('p.isPinned', 'DESC')
       .addOrderBy('p.createdAt', 'DESC')
       .skip(offset)
-      .take(limit);
+      .take(pageSize);
 
-    if (query.keyword) {
-      qb.andWhere('(p.title ILIKE :kw OR p.content ILIKE :kw)', { kw: `%${query.keyword}%` });
-    }
-
-    if (query.popupActiveOnly) {
-      qb.andWhere('p.isPopup = true AND p.popupStartAt <= :now AND p.popupEndAt >= :now', {
-        now: new Date(),
+    if (dto.keyword) {
+      queryBuilder.andWhere('(p.title ILIKE :kw OR p.content ILIKE :kw)', {
+        kw: `%${dto.keyword}%`,
       });
     }
 
-    const [items, total] = await qb.getManyAndCount();
-    return { items, total, page, limit };
+    if (dto.popupActiveOnly) {
+      queryBuilder.andWhere(
+        'p.isPopup = true AND p.popupStartAt <= :now AND p.popupEndAt >= :now',
+        {
+          now: new Date(),
+        },
+      );
+    }
+
+    const totalCount = await queryBuilder.getCount();
+    const boardEntities = await queryBuilder.getMany();
+
+    return getPaginationResult(boardEntities, totalCount, page, pageSize);
   }
 
   async findOne(id: number) {
@@ -74,7 +86,11 @@ export class BoardService {
       where: { id },
       relations: { author: true },
     });
-    if (!found) throw new NotFoundException('게시글을 찾을 수 없습니다.');
+    if (!found)
+      throw new NotFoundException({
+        message: '존재하지 않는 게시글입니다.',
+        errorCode: 'BOARD_NOT_FOUND',
+      });
     return found;
   }
 

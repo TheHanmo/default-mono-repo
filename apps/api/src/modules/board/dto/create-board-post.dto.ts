@@ -1,13 +1,4 @@
-import {
-  IsBoolean,
-  IsDateString,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Length,
-  Min,
-} from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -21,11 +12,6 @@ export class CreateBoardPostDto {
   @IsString()
   @IsNotEmpty()
   content!: string;
-
-  @ApiProperty({ description: '작성자(회원 고유번호)' })
-  @IsInt()
-  @Min(1)
-  authorId!: number;
 
   @ApiProperty({ required: false, default: false })
   @IsOptional()

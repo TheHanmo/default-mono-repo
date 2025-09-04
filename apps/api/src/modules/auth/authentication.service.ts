@@ -21,6 +21,7 @@ export class AuthenticationService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      role: user.memberType,
       jti: uuidv4(),
     };
     return this.jwtService.signAsync(payload, {
@@ -33,6 +34,7 @@ export class AuthenticationService {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      role: user.memberType,
       jti: uuidv4(),
       type: 'refresh',
     };

@@ -99,16 +99,11 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<string> {
-    let userId: number;
-
     const secret = this.configService.get<string>('JWT_SECRET');
 
+    let payload: JwtPayload;
     try {
-      const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
-        secret,
-      });
-
-      userId = payload.sub;
+      payload = this.jwtService.verify<JwtPayload>(refreshToken, { secret });
     } catch {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 유효하지 않습니다.',
@@ -116,24 +111,34 @@ export class AuthService {
       });
     }
 
-    const user = await this.userService.findById(userId);
+    const user = await this.userService.findById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
 
-    if (!user?.refreshToken) {
+    const sessions = await this.userService.findByRefreshToken(user.id);
+
+    if (!sessions?.length) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 존재하지 않습니다.',
         errorCode: 'MISSING_REFRESH_TOKEN',
       });
     }
 
-    const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
+    const isMatched = (
+      await Promise.all(sessions.map(s => bcrypt.compare(refreshToken, s.refreshToken)))
+    ).some(Boolean);
 
-    if (!isValid) {
+    if (!isMatched) {
       throw new UnauthorizedException({
         message: '리프레시 토큰이 유효하지 않습니다.',
         errorCode: 'INVALID_REFRESH_TOKEN',
       });
     }
 
-    return await this.authenticationService.createAccessToken(user);
+    return this.authenticationService.createAccessToken(user);
   }
 }

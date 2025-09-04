@@ -11,13 +11,13 @@ export class ListBoardPostDto {
   @IsOptional()
   page?: number = 1;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20 })
+  @ApiPropertyOptional({ minimum: 1, maximum: 500, default: 20 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(500)
   @IsOptional()
-  limit?: number = 20;
+  pageSize?: number = 20;
 
   @ApiPropertyOptional({ description: '제목/내용 키워드' })
   @IsOptional()

@@ -41,15 +41,6 @@ export class UserEntity {
   name!: string;
 
   @Column({
-    name: 'refresh_token',
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-    comment: '리프레시 토큰',
-  })
-  refreshToken?: string | null;
-
-  @Column({
     name: 'phone_number',
     type: 'varchar',
     length: 20,
