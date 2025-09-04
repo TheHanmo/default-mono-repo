@@ -108,19 +108,19 @@ export class UserService {
           errorCode: 'EMAIL_ALREADY_REGISTERED',
         });
       }
-      // 파트너 생성
-      const newPartner = this.userRepository.create({
+
+      const newUser = this.userRepository.create({
         ...rest,
         email,
       });
-      const savedPartner = await queryRunner.manager.save(UserEntity, newPartner);
+      const savedUser = await queryRunner.manager.save(UserEntity, newUser);
 
       await queryRunner.commitTransaction();
       return {
-        id: savedPartner.id,
-        email: savedPartner.email,
-        name: savedPartner.name,
-        memberType: savedPartner.memberType,
+        id: savedUser.id,
+        email: savedUser.email,
+        name: savedUser.name,
+        memberType: savedUser.memberType,
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
