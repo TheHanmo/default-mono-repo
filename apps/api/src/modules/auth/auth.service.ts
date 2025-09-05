@@ -1,19 +1,12 @@
 import * as bcrypt from 'bcrypt';
 
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { AuthenticationService } from '@modules/auth/authentication.service';
 import { LoginDto } from '@modules/auth/dto/login.dto';
-import { RegisterResponseDto } from '@modules/auth/dto/register-response.dto';
 import { JwtPayload } from '@modules/auth/interfaces/jwt-payload.interface';
-import { CreateRegisterDto } from '@modules/user/dto/create-register.dto';
 import { UserEntity } from '@modules/user/entity/user.entity';
 import { UserService } from '@modules/user/user.service';
 
@@ -25,29 +18,6 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly authenticationService: AuthenticationService,
   ) {}
-
-  async register(registerDto: CreateRegisterDto): Promise<RegisterResponseDto> {
-    const { email, password } = registerDto;
-
-    const userExists = await this.userService.findByEmail(email);
-
-    if (userExists) {
-      throw new ConflictException({
-        message: '이미 등록된 이메일입니다.',
-        errorCode: 'EMAIL_ALREADY_REGISTERED',
-      });
-    }
-
-    registerDto.password = await bcrypt.hash(password, 10);
-    const result = await this.userService.create(registerDto);
-
-    return {
-      id: result.id,
-      email: result.email,
-      name: result.name,
-      memberType: result.memberType,
-    };
-  }
 
   async login(loginDto: LoginDto): Promise<{
     accessToken?: string;

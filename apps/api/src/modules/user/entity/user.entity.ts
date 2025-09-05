@@ -2,11 +2,15 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { MemberType } from '@common/enum/member-type.enum';
+
+import { CompanyEntity } from '@modules/company/companies.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -33,21 +37,12 @@ export class UserEntity {
   })
   password!: string;
 
-  @Column({
-    type: 'varchar',
-    length: 50,
-    comment: '회원 이름',
-  })
-  name!: string;
+  @Column({ name: 'company_id', type: 'int', nullable: true })
+  companyId!: number;
 
-  @Column({
-    name: 'phone_number',
-    type: 'varchar',
-    length: 20,
-    nullable: true,
-    comment: '휴대폰 번호',
-  })
-  phoneNumber?: string | null;
+  @ManyToOne(() => CompanyEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'company_id' })
+  company!: CompanyEntity;
 
   @Column({
     name: 'member_type',
@@ -57,6 +52,9 @@ export class UserEntity {
     comment: '회원 종류',
   })
   memberType!: MemberType;
+
+  @Column({ name: 'memo', type: 'varchar', length: 255, nullable: true, comment: '메모' })
+  memo?: string;
 
   @CreateDateColumn({
     name: 'created_at',

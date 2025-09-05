@@ -1,8 +1,6 @@
-import { ApiResponseDto } from '@app-types/api-response.type';
 import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 
 import {
-  Body,
   Controller,
   Post,
   Request,
@@ -12,14 +10,10 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { responseSuccess } from '@utils/response.util';
-
 import { AuthService } from '@modules/auth/auth.service';
 import { LoginDto } from '@modules/auth/dto/login.dto';
-import { RegisterResponseDto } from '@modules/auth/dto/register-response.dto';
 import { JwtUser } from '@modules/auth/interfaces/jwt-payload.interface';
 import { JwtAuthGuard } from '@modules/auth/jwt-auth.guard';
-import { CreateRegisterDto } from '@modules/user/dto/create-register.dto';
 import { UserService } from '@modules/user/user.service';
 
 @ApiTags('Auth')
@@ -32,22 +26,6 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UserService,
   ) {}
-
-  @Post('register')
-  @ApiOperation({
-    summary: '회원가입',
-    description:
-      '이메일과 비밀번호를 사용하여 회원가입 합니다. <br/><br/>Function: authRegister <br/> Dto: CreateRegisterDto <br/> Response: RegisterResponseDto',
-  })
-  @ApiResponse({
-    status: 201,
-    description: '회원가입 성공',
-  })
-  async register(@Body() dto: CreateRegisterDto): Promise<ApiResponseDto<RegisterResponseDto>> {
-    const result = await this.authService.register(dto);
-
-    return responseSuccess(result, '회원가입이 완료되었습니다.');
-  }
 
   @Post('login')
   @ApiOperation({

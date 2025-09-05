@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsString } from 'class-validator';
+import { IsEmail, IsString } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -13,15 +13,13 @@ export class CreateRegisterDto {
   @IsString()
   password!: string;
 
-  @ApiProperty({ description: '이름', example: '홍길동' })
+  @ApiProperty({ description: '회사 ID', example: 1, required: false })
   @IsString()
-  name!: string;
+  companyId?: number;
 
-  @ApiProperty({ description: '휴대폰 번호', example: '010-1234-5678' })
+  @ApiProperty({ description: '메모', example: '메모', required: false })
   @IsString()
-  phoneNumber!: string;
+  memo?: string;
 
-  @ApiProperty({ description: '회원 종류', enum: MemberType })
-  @IsEnum(MemberType)
   memberType!: MemberType;
 }

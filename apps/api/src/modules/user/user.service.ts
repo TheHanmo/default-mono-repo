@@ -1,10 +1,15 @@
+import * as bcrypt from 'bcrypt';
 import { DataSource, Repository } from 'typeorm';
 
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { RegisterResponseDto } from '@modules/auth/dto/register-response.dto';
+import { CompanyType } from '@common/enum/company-type.enum';
+import { MemberType } from '@common/enum/member-type.enum';
+
+import { JwtUser } from '@modules/auth/interfaces/jwt-payload.interface';
 import { CreateRegisterDto } from '@modules/user/dto/create-register.dto';
+import { UserProfileResponseDto } from '@modules/user/dto/user-profile-response.dto';
 import { UserEntity } from '@modules/user/entity/user.entity';
 import { UserRefreshSessionEntity } from '@modules/user/entity/user-refresh-session.entity';
 
@@ -27,6 +32,7 @@ export class UserService {
   async findById(id: number): Promise<UserEntity | null> {
     return await this.userRepository.findOne({
       where: { id },
+      relations: ['company'],
     });
   }
 
@@ -89,7 +95,55 @@ export class UserService {
       .execute();
   }
 
-  async create(registerDto: CreateRegisterDto): Promise<RegisterResponseDto> {
+  async register(
+    userInfo: JwtUser,
+    registerDto: CreateRegisterDto,
+  ): Promise<UserProfileResponseDto> {
+    const { userId } = userInfo;
+    const { email, password } = registerDto;
+
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new ConflictException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
+
+    const memberType = user.memberType;
+
+    if (memberType === MemberType.SUPER_ADMIN) {
+      registerDto.memberType = MemberType.DISTRIBUTOR;
+    } else if (memberType === MemberType.DISTRIBUTOR) {
+      registerDto.memberType = MemberType.AGENT;
+      registerDto.companyId = user.companyId;
+    } else if (memberType === MemberType.AGENT) {
+      registerDto.memberType = MemberType.GENERAL;
+      registerDto.companyId = user.companyId;
+    }
+
+    const userExists = await this.findByEmail(email);
+
+    if (userExists) {
+      throw new ConflictException({
+        message: '이미 등록된 이메일입니다.',
+        errorCode: 'EMAIL_ALREADY_REGISTERED',
+      });
+    }
+
+    registerDto.password = await bcrypt.hash(password, 10);
+    const result = await this.createUser(registerDto);
+
+    return {
+      id: result.id,
+      email: result.email,
+      memberType: result.memberType,
+      memo: result.memo,
+      company: result.company,
+    };
+  }
+
+  async createUser(registerDto: CreateRegisterDto): Promise<UserProfileResponseDto> {
     const { email, ...rest } = registerDto;
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -119,14 +173,144 @@ export class UserService {
       return {
         id: savedUser.id,
         email: savedUser.email,
-        name: savedUser.name,
         memberType: savedUser.memberType,
+        memo: savedUser.memo,
+        company: savedUser.company,
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
       throw e;
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  async updateUser(
+    accessUserInfo: JwtUser,
+    updateUserId: number,
+    updateData: Partial<UserEntity>,
+  ): Promise<void> {
+    const { userId, role } = accessUserInfo;
+
+    const accessUser = await this.findById(userId);
+    if (!accessUser) {
+      throw new ConflictException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
+
+    const updateUser = await this.findById(updateUserId);
+    if (!updateUser) {
+      throw new ConflictException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
+
+    const memberType = role;
+
+    if (
+      memberType === MemberType.SUPER_ADMIN &&
+      updateUser.company.type !== CompanyType.DISTRIBUTOR
+    ) {
+      throw new ConflictException({
+        message: '총판 회원만 수정 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    } else if (
+      memberType === MemberType.DISTRIBUTOR &&
+      updateUser.company.type !== CompanyType.AGENT &&
+      accessUser.companyId !== updateUser.companyId
+    ) {
+      throw new ConflictException({
+        message: '대행사 회원만 수정 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    } else if (
+      memberType === MemberType.AGENT &&
+      updateUser.memberType !== MemberType.GENERAL &&
+      accessUser.companyId !== updateUser.companyId
+    ) {
+      throw new ConflictException({
+        message: '일반 회원만 수정 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    }
+
+    try {
+      await this.userRepository.update(updateUserId, updateData);
+    } catch {
+      throw new ConflictException({
+        message: '사용자 정보 업데이트 중 오류가 발생했습니다.',
+        errorCode: 'USER_UPDATE_ERROR',
+      });
+    }
+  }
+
+  async deleteUser(accessUserInfo: JwtUser, deleteUserId: number): Promise<void> {
+    const { userId, role } = accessUserInfo;
+
+    const accessUser = await this.findById(userId);
+    if (!accessUser) {
+      throw new ConflictException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
+
+    const deleteUser = await this.findById(deleteUserId);
+    if (!deleteUser) {
+      throw new ConflictException({
+        message: '사용자를 찾을 수 없습니다.',
+        errorCode: 'USER_NOT_FOUND',
+      });
+    }
+
+    const memberType = role;
+
+    if (deleteUser.memberType === MemberType.SUPER_ADMIN) {
+      throw new ConflictException({
+        message: '슈퍼 어드민은 삭제할 수 없습니다.',
+        errorCode: 'CANNOT_DELETE_SUPER_ADMIN',
+      });
+    }
+
+    if (
+      memberType === MemberType.SUPER_ADMIN &&
+      deleteUser.company.type !== CompanyType.DISTRIBUTOR
+    ) {
+      throw new ConflictException({
+        message: '총판 회원만 삭제 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    } else if (
+      memberType === MemberType.DISTRIBUTOR &&
+      deleteUser.company.type !== CompanyType.AGENT &&
+      accessUser.companyId !== deleteUser.companyId
+    ) {
+      throw new ConflictException({
+        message: '대행사 회원만 삭제 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    } else if (
+      memberType === MemberType.AGENT &&
+      deleteUser.memberType !== MemberType.GENERAL &&
+      accessUser.companyId !== deleteUser.companyId
+    ) {
+      throw new ConflictException({
+        message: '일반 회원만 삭제 할 수 있습니다.',
+        errorCode: 'INVALID_MEMBER_TYPE',
+      });
+    }
+
+    try {
+      await this.userRepository.delete(deleteUserId);
+    } catch {
+      throw new ConflictException({
+        message: '사용자 정보 삭제 중 오류가 발생했습니다.',
+        errorCode: 'USER_DELETE_ERROR',
+      });
     }
   }
 }
