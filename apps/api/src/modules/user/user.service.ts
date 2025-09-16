@@ -4,7 +4,6 @@ import { DataSource, Repository } from 'typeorm';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { CompanyType } from '@common/enum/company-type.enum';
 import { MemberType } from '@common/enum/member-type.enum';
 
 import { JwtUser } from '@modules/auth/interfaces/jwt-payload.interface';
@@ -139,7 +138,6 @@ export class UserService {
       email: result.email,
       memberType: result.memberType,
       memo: result.memo,
-      company: result.company,
     };
   }
 
@@ -175,7 +173,6 @@ export class UserService {
         email: savedUser.email,
         memberType: savedUser.memberType,
         memo: savedUser.memo,
-        company: savedUser.company,
       };
     } catch (e) {
       await queryRunner.rollbackTransaction();
@@ -190,7 +187,7 @@ export class UserService {
     updateUserId: number,
     updateData: Partial<UserEntity>,
   ): Promise<void> {
-    const { userId, role } = accessUserInfo;
+    const { userId } = accessUserInfo;
 
     const accessUser = await this.findById(userId);
     if (!accessUser) {
@@ -208,36 +205,6 @@ export class UserService {
       });
     }
 
-    const memberType = role;
-
-    if (
-      memberType === MemberType.SUPER_ADMIN &&
-      updateUser.company.type !== CompanyType.DISTRIBUTOR
-    ) {
-      throw new ConflictException({
-        message: '총판 회원만 수정 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
-      });
-    } else if (
-      memberType === MemberType.DISTRIBUTOR &&
-      updateUser.company.type !== CompanyType.AGENT &&
-      accessUser.companyId !== updateUser.companyId
-    ) {
-      throw new ConflictException({
-        message: '대행사 회원만 수정 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
-      });
-    } else if (
-      memberType === MemberType.AGENT &&
-      updateUser.memberType !== MemberType.GENERAL &&
-      accessUser.companyId !== updateUser.companyId
-    ) {
-      throw new ConflictException({
-        message: '일반 회원만 수정 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
-      });
-    }
-
     try {
       await this.userRepository.update(updateUserId, updateData);
     } catch {
@@ -249,7 +216,7 @@ export class UserService {
   }
 
   async deleteUser(accessUserInfo: JwtUser, deleteUserId: number): Promise<void> {
-    const { userId, role } = accessUserInfo;
+    const { userId } = accessUserInfo;
 
     const accessUser = await this.findById(userId);
     if (!accessUser) {
@@ -267,40 +234,10 @@ export class UserService {
       });
     }
 
-    const memberType = role;
-
     if (deleteUser.memberType === MemberType.SUPER_ADMIN) {
       throw new ConflictException({
         message: '슈퍼 어드민은 삭제할 수 없습니다.',
         errorCode: 'CANNOT_DELETE_SUPER_ADMIN',
-      });
-    }
-
-    if (
-      memberType === MemberType.SUPER_ADMIN &&
-      deleteUser.company.type !== CompanyType.DISTRIBUTOR
-    ) {
-      throw new ConflictException({
-        message: '총판 회원만 삭제 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
-      });
-    } else if (
-      memberType === MemberType.DISTRIBUTOR &&
-      deleteUser.company.type !== CompanyType.AGENT &&
-      accessUser.companyId !== deleteUser.companyId
-    ) {
-      throw new ConflictException({
-        message: '대행사 회원만 삭제 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
-      });
-    } else if (
-      memberType === MemberType.AGENT &&
-      deleteUser.memberType !== MemberType.GENERAL &&
-      accessUser.companyId !== deleteUser.companyId
-    ) {
-      throw new ConflictException({
-        message: '일반 회원만 삭제 할 수 있습니다.',
-        errorCode: 'INVALID_MEMBER_TYPE',
       });
     }
 

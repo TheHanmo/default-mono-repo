@@ -14,7 +14,7 @@ import { BoardEntity } from './entity/board.entity';
 export class BoardService {
   constructor(
     @InjectRepository(BoardEntity)
-    private readonly boardEntityRepository: Repository<BoardEntity>,
+    private readonly boardRepository: Repository<BoardEntity>,
   ) {}
 
   private validatePopupWindow(
@@ -36,7 +36,7 @@ export class BoardService {
   async create(userId: number, dto: CreateBoardPostDto) {
     this.validatePopupWindow(dto.isPopup, dto.popupStartAt, dto.popupEndAt);
 
-    const boardEntity = this.boardEntityRepository.create({
+    const boardEntity = this.boardRepository.create({
       title: dto.title,
       content: dto.content,
       authorId: userId,
@@ -46,13 +46,13 @@ export class BoardService {
       popupEndAt: dto.popupEndAt ? new Date(dto.popupEndAt) : null,
     });
 
-    return this.boardEntityRepository.save(boardEntity);
+    return this.boardRepository.save(boardEntity);
   }
 
   async findAll(dto: ListBoardPostDto) {
     const { page, pageSize, offset } = getPagination(dto);
 
-    const queryBuilder = this.boardEntityRepository
+    const queryBuilder = this.boardRepository
       .createQueryBuilder('p')
       .leftJoinAndSelect('p.author', 'author')
       .orderBy('p.isPinned', 'DESC')
@@ -82,7 +82,7 @@ export class BoardService {
   }
 
   async findOne(id: number) {
-    const found = await this.boardEntityRepository.findOne({
+    const found = await this.boardRepository.findOne({
       where: { id },
       relations: { author: true },
     });
@@ -102,7 +102,7 @@ export class BoardService {
       dto.popupEndAt ?? existing.popupEndAt,
     );
 
-    const merged = this.boardEntityRepository.merge(existing, {
+    const merged = this.boardRepository.merge(existing, {
       ...dto,
       popupStartAt:
         dto.popupStartAt !== undefined
@@ -117,12 +117,12 @@ export class BoardService {
             : null
           : existing.popupEndAt,
     });
-    return this.boardEntityRepository.save(merged);
+    return this.boardRepository.save(merged);
   }
 
   async remove(id: number) {
     const existing = await this.findOne(id);
-    await this.boardEntityRepository.remove(existing);
+    await this.boardRepository.remove(existing);
     return { id };
   }
 }
