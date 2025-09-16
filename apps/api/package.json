@@ -42,6 +42,8 @@
     "class-validator": "^0.14.2",
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dayjs": "^1.11.18",
     "moment-timezone": "^0.6.0",
     "passport": "^0.7.0",

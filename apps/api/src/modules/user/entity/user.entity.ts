@@ -2,15 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { MemberType } from '@common/enum/member-type.enum';
-
-import { CompanyEntity } from '@modules/company/companies.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -39,10 +35,6 @@ export class UserEntity {
 
   @Column({ name: 'company_id', type: 'int', nullable: true })
   companyId!: number;
-
-  @ManyToOne(() => CompanyEntity, { nullable: true, onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'company_id' })
-  company!: CompanyEntity;
 
   @Column({
     name: 'member_type',
