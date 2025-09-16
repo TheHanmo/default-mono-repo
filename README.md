@@ -26,3 +26,10 @@ pnpm install
 ```
 http://localhost:4000/doc
 ```
+
+## 4. 패키지 구조
+
+```
+apps/api - NestJS 백엔드 API 서버
+apps/admin - NextJS 관리자 페이지
+```
